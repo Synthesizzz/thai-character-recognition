@@ -26,3 +26,10 @@ Thumbs.db
 /Project_info.md
 /Project_info.png
 /output_colab.ipynb
+
+# Local-run script variants (VSCode/terminal, not needed to pull into Colab —
+# the notebook above is self-contained: writes its own Net.py via %%writefile)
+/Net.py
+/Submit/
+/Submit (Round 2 - WIP)/
+/Test/
