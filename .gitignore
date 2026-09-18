@@ -27,6 +27,7 @@ Thumbs.db
 /Project_info.png
 /output_colab.ipynb
 /output_colab_round2.ipynb
+/GPU_Setup_Guide_AMD.md
 
 # Local-run script variants (VSCode/terminal, not needed to pull into Colab —
 # the notebook above is self-contained: writes its own Net.py via %%writefile)
