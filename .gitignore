@@ -18,6 +18,9 @@ __pycache__/
 .DS_Store
 Thumbs.db
 
+# Editor (local settings, not shared)
+.vscode/
+
 # Planning/progress docs & run logs — kept locally only, not part of the shipped code
 /Dataset_Summary.md
 /Implementation_Plan.md
