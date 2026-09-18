@@ -17,3 +17,12 @@ __pycache__/
 # OS
 .DS_Store
 Thumbs.db
+
+# Planning/progress docs & run logs — kept locally only, not part of the shipped code
+/Dataset_Summary.md
+/Implementation_Plan.md
+/PROGRESS.md
+/Project_References.md
+/Project_info.md
+/Project_info.png
+/output_colab.ipynb
