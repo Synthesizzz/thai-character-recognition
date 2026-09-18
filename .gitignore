@@ -1,0 +1,19 @@
+# Datasets (raw data, not tracked — see Dataset_Summary.md for source/how to get it)
+ThaiCharacter Dataset/
+ThaiCharacter Dataset.zip
+datasets for testing/
+
+# Trained model weights (large binaries — retrain via TrainingCNN.py / the Colab notebook to regenerate)
+*.pt
+*.pth
+
+# Python
+__pycache__/
+*.pyc
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+Thumbs.db
