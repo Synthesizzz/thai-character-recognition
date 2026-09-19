@@ -24,7 +24,7 @@
 | คะแนนจัดลำดับประสิทธิภาพของแบบจำลอง | 3% | ❓ | ขึ้นกับผลวันทดสอบเทียบกับกลุ่มอื่น |
 | **เทคนิค:** Transfer Learning | 1.5% | ✅ | ResNet18 pretrained (ImageNet `IMAGENET1K_V1`) แก้ `conv1` เป็น 1 ช่อง + `fc` 72 คลาส — [`Round 2/Net.py`](Round%202/Net.py) |
 | **เทคนิค:** Data Augmentation | 1.5% | ✅ | เติมคลาสที่มีน้อยให้ครบ 50 ภาพ/คลาส (หมุนสุ่ม ±15° + noise) — ดู `TrainingCNN.py` ของทุก Round |
-| **เทคนิค:** เทคนิค/แนวคิดที่น่าสนใจ | 2% | 🟡 | ทำแล้ว: standardize, class weight, LR scheduler, early stopping + best checkpoint, ทดลองเชิงระบบ 4 รอบ (ขนาดภาพ / maxpool / seed) พร้อมตารางเปรียบเทียบ, วัดกับชุดนอก domain · ยังไม่ได้ทำ: letterbox resize, ablation แบบไม่ใช้ pretrain |
+| **เทคนิค:** เทคนิค/แนวคิดที่น่าสนใจ | 2% | 🟡 | ทำแล้ว: standardize, class weight, LR scheduler, early stopping + best checkpoint, ทดลองเชิงระบบ 5 รอบ (ขนาดภาพ / maxpool / seed / augmentation) พร้อมตารางเปรียบเทียบ, วัดกับชุดนอก domain, augmentation แบบลบส่วนของภาพ/ปรับความหนาเส้น (Round 5) ทนภาพแหว่งดีขึ้นในทั้งสอง seed ที่ทดสอบ · ยังไม่ได้ทำ: letterbox resize, ablation แบบไม่ใช้ pretrain |
 | การนำเสนอและสื่อประกอบ | 2% | ⬜ | ยังไม่ได้ทำสไลด์ (ดูตารางที่ 3) |
 
 ### 2) สิ่งที่ต้องส่ง
@@ -92,11 +92,11 @@
 | [`Round 2`](Round%202) | **ตัวส่งปัจจุบัน** — 64x64, ตัด maxpool, dropout, standardize, stratify, weight decay, scheduler, class weight, early stopping, best checkpoint (Colab) | **98.79%** | 68.75% |
 | [`Round 3`](Round%203) | ทดลอง 224x224 + คืน maxpool, lazy dataset, เทรน local ด้วย DirectML (AMD RX 7600S) | 98.54% | 69.91% |
 | [`Round 4`](Round%204) | ทดลองขนาดภาพ 64/96/128 และเปิด/ปิด maxpool + ทำซ้ำด้วย seed ต่างกัน (6 รัน) | 98.40–98.53% | 68.29–71.06% |
-| [`Round 5`](Round%205) | augmentation ใหม่กับทุกภาพของชุด train (หมุน/ย่อขยาย/เลื่อน, ปรับความหนาเส้น, ลบส่วนของภาพ) เทรนบน Colab (1 รอบ) | 98.53% | 69.91% |
+| [`Round 5`](Round%205) | augmentation ใหม่กับทุกภาพของชุด train (หมุน/ย่อขยาย/เลื่อน, ปรับความหนาเส้น, ลบส่วนของภาพ) เทรน 2 รอบ (seed 1 บน Colab, seed 2 บนเครื่อง local) | 98.05–98.53% | 69.91–71.30% |
 
 **ข้อสรุปตอนนี้:** ตั้งแต่ Round 2 เป็นต้นไป ทุกแบบให้ผลใกล้กันมาก (synthetic ต่างกันไม่กี่ภาพ ซึ่งเทียบเท่าความแกว่งระหว่างรอบของแบบเดียวกัน
 เช่น `img96_nomp` ทำซ้ำ 3 รอบได้ 68.98–71.06%, เฉลี่ย 70.29%) จึงยังสรุปไม่ได้ว่าขนาดภาพ/maxpool แบบไหนดีกว่าจริง
-Round 5 (augmentation ใหม่) ให้ val/synthetic ใกล้เคียงกัน แต่ **ทนภาพแหว่ง/เส้นบางได้ดีกว่ามาก** (เช่น เส้นบางลง 1 พิกเซล 82.7% เทียบ 56.4%) · ตัวส่งยังเป็น Round 2 (ยังไม่ตัดสินใจ) · รายละเอียดครบทุกค่าและผล: [`Experiment Comparison/comparison.md`](Experiment%20Comparison/comparison.md)
+Round 5 (augmentation ใหม่, เทรน 2 รอบ) ให้ synthetic ใกล้เคียงกัน (เฉลี่ย 70.60% เทียบ 70.29%) และ val_acc เฉลี่ยต่ำกว่าเล็กน้อย (98.29% เทียบ 98.49%) แต่ **ทนภาพแหว่ง/เส้นบางได้ดีกว่ามากในทั้งสอง seed** (เช่น เส้นบางลง 1 พิกเซล 82.7% และ 88.0% เทียบ 56.4%) · ตัวส่งยังเป็น Round 2 (ยังไม่ตัดสินใจ) · รายละเอียดครบทุกค่าและผล: [`Experiment Comparison/comparison.md`](Experiment%20Comparison/comparison.md)
 (`comparison.csv` = ทุก config + ผล, `comparison_history.csv` = train/val ทุก epoch)
 
 ## 📊 เปรียบเทียบผลทุก Round
@@ -114,8 +114,9 @@ Round 5 (augmentation ใหม่) ให้ val/synthetic ใกล้เค�
 | Round 4 | `img96` | 96 | on | 40/60 | 98.40% | 68.29% (295/432) | 1.6 |  |
 | Round 4 | `img96_nomp` | 96 | off | 46/60 | 98.53% | 70.83% (306/432) | 2.8 | ต้นฉบับ (ไม่ตั้ง seed) |
 | Round 4 | `img96_nomp_s1` | 96 | off | 32/60 | 98.49% | 68.98% (298/432) | 3.2 | ทำซ้ำ seed 1 |
-| Round 4 | `img96_nomp_s2` | 96 | off | 44/60 | 98.45% | **71.06% (307/432)** ⭐ | 3.1 | ทำซ้ำ seed 2 |
-| Round 5 | `img96_nomp_aug_s1` | 96 | off | 55/60 | 98.53% | 69.91% (302/432) | 2.0 | **augmentation ใหม่** — ทนภาพแหว่งดีกว่า Round 2 และ `img96_nomp` มาก (เทรน 1 รอบ บน Colab) |
+| Round 4 | `img96_nomp_s2` | 96 | off | 44/60 | 98.45% | 71.06% (307/432) | 3.1 | ทำซ้ำ seed 2 |
+| Round 5 | `img96_nomp_aug_s1` | 96 | off | 55/60 | 98.53% | 69.91% (302/432) | 2.0 | **augmentation ใหม่** seed 1 (Colab GPU) — ทนภาพแหว่งดีกว่า Round 2 และ `img96_nomp` มาก |
+| Round 5 | `img96_nomp_aug_s2` | 96 | off | 56/60 | 98.05% | **71.30% (308/432)** ⭐ | 3.0 | **augmentation ใหม่** seed 2 (เครื่อง local DirectML) — ผลทนภาพแหว่งสอดคล้องกับ seed 1 |
 
 ### ค่าที่ดีที่สุดของแต่ละ Round (⭐ = สูงที่สุดจากทุก Round)
 
@@ -124,8 +125,8 @@ Round 5 (augmentation ใหม่) ให้ val/synthetic ใกล้เค�
 | Round 1 | 98.48% (`round1`) | 53.70% (`round1`) |
 | Round 2 | **98.79%** ⭐ (`round2`) | 68.75% (`round2`) |
 | Round 3 | 98.54% (`round3_img224`) | 69.91% (`round3_img224`) |
-| Round 4 | 98.53% (`img96_nomp`) | **71.06%** ⭐ (`img96_nomp_s2`) |
-| Round 5 | 98.53% (`img96_nomp_aug_s1`) | 69.91% (`img96_nomp_aug_s1`) |
+| Round 4 | 98.53% (`img96_nomp`) | 71.06% (`img96_nomp_s2`) |
+| Round 5 | 98.53% (`img96_nomp_aug_s1`) | **71.30%** ⭐ (`img96_nomp_aug_s2`) |
 
 อ่านตารางนี้ด้วยความระมัดระวัง: ความต่างของ val_acc ระหว่างรอบส่วนใหญ่เพียง 0.1–0.4 จุด และ synthetic ของแบบเดียวกันแกว่งระหว่างรอบได้ ~2 จุด (1 ภาพ ≈ 0.23 จุด) จึงยังบอกไม่ได้ว่ารอบไหนดีกว่าจริงจากตัวเลขสองคอลัมน์นี้อย่างเดียว · ชุด val ของ Round 1–2 (เทรนบน Colab) น่าจะไม่ตรงกับ Round 3–5 (Round 1 แบ่งสุ่มไม่ stratify; Round 2 ผมสร้างชุด val ซ้ำแล้วไม่ตรงกับที่ log ไว้) จึงเทียบ val ตรง ๆ ไม่ได้ · ตารางความทนทานต่อภาพแหว่ง/รูปแบบภาพ (ซึ่ง Round 5 ดีขึ้นมาก) อยู่ที่ [`Experiment Comparison/robustness_tests.md`](Experiment%20Comparison/robustness_tests.md) · ทุกค่า config และผลเต็มอยู่ที่ [`Experiment Comparison/comparison.md`](Experiment%20Comparison/comparison.md)
 <!-- COMPARISON:END -->
