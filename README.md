@@ -109,7 +109,7 @@
 
 ## วิธีรัน (ตัวส่ง = Round 2)
 
-ติดตั้ง: `torch`, `torchvision`, `scikit-image`, `scikit-learn`, `pandas`, `numpy`, `tqdm`
+ติดตั้ง: `pip install -r requirements.txt` (มีคำแนะนำเลือก PyTorch ตามการ์ดจอ NVIDIA / AMD / CPU อยู่ในไฟล์)
 
 Inference (รันจากในโฟลเดอร์ `Round 2`):
 ```bash
