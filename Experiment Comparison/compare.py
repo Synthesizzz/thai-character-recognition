@@ -110,12 +110,12 @@ ROUND_INFO = {
     },
     "Round 5": {
         "round_summary": "เปลี่ยนเฉพาะ Data Augmentation: สุ่มแปลงภาพเทรน *ทุกภาพ* ระหว่างเทรน (หมุน/ย่อขยาย/เลื่อน, ปรับความหนาเส้น, ลบส่วนของภาพ) "
-                         "เฉพาะชุด train ใช้ข้อมูลของอาจารย์เท่านั้น เทรนที่ 96x96 ไม่มี maxpool บน Colab (ผลเทียบกับ img96_nomp ของ Round 4)",
+                         "เฉพาะชุด train ใช้ข้อมูลของอาจารย์เท่านั้น เทรนที่ 96x96 ไม่มี maxpool 2 รอบ (seed 1 บน Colab, seed 2 บนเครื่อง DirectML) เทียบกับ img96_nomp ของ Round 4",
         "changes_vs_previous": "- Augmentation ใหม่กับทุกภาพของชุด train (เดิมเฉพาะภาพเติม ~1%): หมุน ±10°/ย่อขยาย 0.9–1.1/เลื่อน ±6% (50%), "
                                "ปรับความหนาเส้น 1–2% ของขนาดภาพ (30%), ลบส่วนของภาพ 1–2 ก้อน ก้อนละ 10–35% (40%)\n"
                                "- ชุด val ไม่ถูก augment; โมเดล/optimizer/loss/scheduler/early stopping คงเดิม\n"
                                "- เพิ่ม env AUGMENT, AUG_PREVIEW; TestingCNN แก้โหลดน้ำหนักจาก CUDA (map_location='cpu') และภาพ 1-bit (bool->uint8)",
-        "device": "Google Colab GPU (CUDA)", "model": COMMON_MODEL + "; ไม่มี maxpool (96x96); fc = Dropout(0.3)+Linear",
+        "device": "ต่อรัน (ดูคอลัมน์ device ใน comparison.csv)", "model": COMMON_MODEL + "; ไม่มี maxpool (96x96); fc = Dropout(0.3)+Linear",
         "dropout": 0.3, "normalization": "หาร 255 แล้ว standardize (x-mean)/std", "mean_std": None,  # อ่านจาก norm_stats.json ต่อรัน
         "optimizer": "Adam", "lr": 1e-4, "weight_decay": 1e-4, "lr_scheduler": "ReduceLROnPlateau(mode=min, factor=0.5, patience=3)",
         "loss": "CrossEntropyLoss + class weight", "batch_size": 64, "epoch_cap": 60,
@@ -127,6 +127,12 @@ ROUND_INFO = {
     },
 }
 ROUND_ORDER = ["Round 1", "Round 2", "Round 3", "Round 4", "Round 5"]
+
+# อุปกรณ์ที่ใช้เทรนของแต่ละรัน Round 5: (device, ป้ายสั้น, num_workers)
+R5_RUN_DEVICE = {
+    "img96_nomp_aug_s1": ("Google Colab GPU (CUDA)", "Colab GPU", 2),
+    "img96_nomp_aug_s2": ("DirectML: AMD Radeon RX 7600S (local)", "เครื่อง local DirectML", 4),
+}
 
 
 def load(path):
@@ -189,7 +195,8 @@ def syn_of(d):
 def build_rows():
     rows, histories = [], {}
 
-    def add(rnd, run, path, size, maxpool, seed, hist_info, spe, syn, mean_std=None, training_seed=None, note=""):
+    def add(rnd, run, path, size, maxpool, seed, hist_info, spe, syn, mean_std=None, training_seed=None, note="",
+            device=None, num_workers=None):
         info = ROUND_INFO[rnd]
         r = {"round": rnd, "run": run, "path": path, "seed": seed}
         r.update({k: info[k] for k in ("round_summary", "changes_vs_previous", "device", "model", "dropout", "normalization",
@@ -201,6 +208,10 @@ def build_rows():
                   "training_seed": training_seed if training_seed is not None else info["training_seed"],
                   "sec_per_epoch": spe, "syn": syn_of(syn), "note": note})
         r.update(hist_info)
+        if device is not None:
+            r["device"] = device          # ต่อรัน (เช่น Round 5: seed 1 บน Colab, seed 2 บนเครื่อง DirectML)
+        if num_workers is not None:
+            r["num_workers"] = num_workers
         rows.append(r)
 
     h1, cap1 = parse_notebook("output_colab.ipynb")
@@ -263,7 +274,8 @@ def build_rows():
              "last": pick5(len(m["val_acc"]) - 1)},
             m.get("sec_per_epoch"), load(os.path.join(d, "synthetic.json")), mean_std=ms,
             training_seed=f"seed={seed}" if seed is not None else "ไม่ตั้ง",
-            note=("" if m["finished"] else "ยังเทรนไม่จบ / ถูกหยุดกลางคัน") + " [Colab GPU; augmentation ใหม่]")
+            note=("" if m["finished"] else "ยังเทรนไม่จบ / ถูกหยุดกลางคัน") + f" [{R5_RUN_DEVICE.get(m['run'], ('', ''))[1]}; augmentation ใหม่]",
+            device=R5_RUN_DEVICE.get(m["run"], (None, ""))[0], num_workers=R5_RUN_DEVICE.get(m["run"], (None, "", None))[2] if len(R5_RUN_DEVICE.get(m["run"], ())) > 2 else None)
     return rows, histories
 
 
@@ -342,6 +354,17 @@ def main():
               "| ค่า | เฉลี่ย | SD | ต่ำสุด | สูงสุด |", "|---|---|---|---|---|",
               f"| best val_acc | {statistics.mean(va):.2f}% | {sd(va):.2f} | {min(va):.2f}% | {max(va):.2f}% |",
               f"| synthetic | {statistics.mean(sy):.2f}% | {sd(sy):.2f} | {min(sy):.2f}% | {max(sy):.2f}% |"]
+
+    rep5 = [r for r in rows if re.fullmatch(r"img96_nomp_aug(_s\d+)?", r["run"])]
+    if len(rep5) >= 2:
+        va5 = [r["best"]["val_acc"] * 100 for r in rep5]
+        sy5 = [r["syn"]["acc"] * 100 for r in rep5 if r["syn"]["acc"] is not None]
+        sd5 = lambda v: statistics.stdev(v) if len(v) > 1 else 0.0
+        seeds5 = ", ".join(f"{r['run']} (seed {r['seed']})" for r in rep5)
+        L += ["", f"## Round 5 (augmentation ใหม่) ทำซ้ำ {len(rep5)} รอบ: {seeds5}", "",
+              "| ค่า | เฉลี่ย | SD | ต่ำสุด | สูงสุด |", "|---|---|---|---|---|",
+              f"| best val_acc | {statistics.mean(va5):.2f}% | {sd5(va5):.2f} | {min(va5):.2f}% | {max(va5):.2f}% |",
+              f"| synthetic | {statistics.mean(sy5):.2f}% | {sd5(sy5):.2f} | {min(sy5):.2f}% | {max(sy5):.2f}% |"]
 
     L += ["", "## ค่า config ที่ใช้ (ต่อ Round)", "",
           "| ค่า | Round 1 | Round 2 | Round 3 | Round 4 | Round 5 |", "|---|---|---|---|---|---|"]

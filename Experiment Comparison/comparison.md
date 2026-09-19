@@ -59,7 +59,7 @@
 
 ### Round 5
 
-เปลี่ยนเฉพาะ Data Augmentation: สุ่มแปลงภาพเทรน *ทุกภาพ* ระหว่างเทรน (หมุน/ย่อขยาย/เลื่อน, ปรับความหนาเส้น, ลบส่วนของภาพ) เฉพาะชุด train ใช้ข้อมูลของอาจารย์เท่านั้น เทรนที่ 96x96 ไม่มี maxpool บน Colab (ผลเทียบกับ img96_nomp ของ Round 4)
+เปลี่ยนเฉพาะ Data Augmentation: สุ่มแปลงภาพเทรน *ทุกภาพ* ระหว่างเทรน (หมุน/ย่อขยาย/เลื่อน, ปรับความหนาเส้น, ลบส่วนของภาพ) เฉพาะชุด train ใช้ข้อมูลของอาจารย์เท่านั้น เทรนที่ 96x96 ไม่มี maxpool 2 รอบ (seed 1 บน Colab, seed 2 บนเครื่อง DirectML) เทียบกับ img96_nomp ของ Round 4
 
 **ต่างจากรอบก่อน:**
 
@@ -83,6 +83,7 @@ synthetic = `datasets for testing/synthetic_test_set` 432 ภาพ (1 ภาพ
 | Round 4 | img96_nomp_s1 | 96 | off | 1 | 32/60 | 22 | 0.0017 | 99.85% | 0.0826 | 98.49% | 3.2 | 68.98% (298/432) | `Round 4/runs/img96_nomp_s1/` |
 | Round 4 | img96_nomp_s2 | 96 | off | 2 | 44/60 | 34 | 0.0011 | 99.93% | 0.0975 | 98.45% | 3.1 | 71.06% (307/432) | `Round 4/runs/img96_nomp_s2/` |
 | Round 5 | img96_nomp_aug_s1 | 96 | off | 1 | 55/60 | 45 | 0.0146 | 98.55% | 0.0696 | 98.53% | 2.0 | 69.91% (302/432) | `Round 5/runs/img96_nomp_aug_s1/` |
+| Round 5 | img96_nomp_aug_s2 | 96 | off | 2 | 56/60 | 46 | 0.0144 | 98.52% | 0.0792 | 98.05% | 3.0 | 71.30% (308/432) | `Round 5/runs/img96_nomp_aug_s2/` |
 
 ## ผล ณ epoch สุดท้าย (ก่อน early stopping ตัด)
 
@@ -98,6 +99,7 @@ synthetic = `datasets for testing/synthetic_test_set` 432 ภาพ (1 ภาพ
 | img96_nomp_s1 | 32 | 0.0008 | 99.96% | 0.0855 | 98.46% |
 | img96_nomp_s2 | 44 | 0.0009 | 99.94% | 0.0931 | 98.43% |
 | img96_nomp_aug_s1 | 55 | 0.0133 | 98.62% | 0.0695 | 98.49% |
+| img96_nomp_aug_s2 | 56 | 0.0149 | 98.61% | 0.0788 | 97.98% |
 
 ## img96_nomp ทำซ้ำ 3 รอบ (ต้นฉบับไม่ตั้ง seed, s1 seed=1, s2 seed=2)
 
@@ -106,11 +108,18 @@ synthetic = `datasets for testing/synthetic_test_set` 432 ภาพ (1 ภาพ
 | best val_acc | 98.49% | 0.04 | 98.45% | 98.53% |
 | synthetic | 70.29% | 1.14 | 68.98% | 71.06% |
 
+## Round 5 (augmentation ใหม่) ทำซ้ำ 2 รอบ: img96_nomp_aug_s1 (seed 1), img96_nomp_aug_s2 (seed 2)
+
+| ค่า | เฉลี่ย | SD | ต่ำสุด | สูงสุด |
+|---|---|---|---|---|
+| best val_acc | 98.29% | 0.34 | 98.05% | 98.53% |
+| synthetic | 70.60% | 0.98 | 69.91% | 71.30% |
+
 ## ค่า config ที่ใช้ (ต่อ Round)
 
 | ค่า | Round 1 | Round 2 | Round 3 | Round 4 | Round 5 |
 |---|---|---|---|---|---|
-| อุปกรณ์เทรน | Google Colab GPU (CUDA) | Google Colab GPU (CUDA) | DirectML: AMD Radeon RX 7600S (local) | DirectML: AMD Radeon RX 7600S (local) | Google Colab GPU (CUDA) |
+| อุปกรณ์เทรน | Google Colab GPU (CUDA) | Google Colab GPU (CUDA) | DirectML: AMD Radeon RX 7600S (local) | DirectML: AMD Radeon RX 7600S (local) | ต่อรัน (ดูคอลัมน์ device ใน comparison.csv) |
 | โมเดล | ResNet18 pretrained ImageNet (IMAGENET1K_V1); conv1 ใหม่รับ 1 ช่อง (สุ่มค่าเริ่มต้น); fc -> 72 คลาส; มี maxpool; fc = Linear ตรง ๆ (ไม่มี dropout) | ResNet18 pretrained ImageNet (IMAGENET1K_V1); conv1 ใหม่รับ 1 ช่อง (สุ่มค่าเริ่มต้น); fc -> 72 คลาส; ตัด maxpool; fc = Dropout(0.3)+Linear | ResNet18 pretrained ImageNet (IMAGENET1K_V1); conv1 ใหม่รับ 1 ช่อง (สุ่มค่าเริ่มต้น); fc -> 72 คลาส; มี maxpool; fc = Dropout(0.3)+Linear | ResNet18 pretrained ImageNet (IMAGENET1K_V1); conv1 ใหม่รับ 1 ช่อง (สุ่มค่าเริ่มต้น); fc -> 72 คลาส; maxpool ตามแต่ละรัน; fc = Dropout(0.3)+Linear | ResNet18 pretrained ImageNet (IMAGENET1K_V1); conv1 ใหม่รับ 1 ช่อง (สุ่มค่าเริ่มต้น); fc -> 72 คลาส; ไม่มี maxpool (96x96); fc = Dropout(0.3)+Linear |
 | dropout | 0.0 | 0.3 | 0.3 | 0.3 | 0.3 |
 | normalize | หาร 255 เป็นช่วง 0-1 เท่านั้น (ไม่ standardize) | หาร 255 แล้ว standardize (x-mean)/std | หาร 255 แล้ว standardize (x-mean)/std | หาร 255 แล้ว standardize (x-mean)/std | หาร 255 แล้ว standardize (x-mean)/std |
@@ -140,3 +149,4 @@ synthetic = `datasets for testing/synthetic_test_set` 432 ภาพ (1 ภาพ
 - **round2**: ตัวส่งปัจจุบัน; ค่า train/val จาก log ของ Colab; synthetic วัดจาก model.pt ในโฟลเดอร์นี้
 - **round3_img224**: ประวัติทุก epoch จาก terminal log; เวลา/epoch จากแถบ tqdm
 - **img96_nomp_aug_s1**:  [Colab GPU; augmentation ใหม่]
+- **img96_nomp_aug_s2**:  [เครื่อง local DirectML; augmentation ใหม่]
