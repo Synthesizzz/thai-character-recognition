@@ -52,13 +52,18 @@ except (ImportError, RuntimeError):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 model = Net(num_classes=len(CLASSES), use_maxpool=USE_MAXPOOL)
-model.load_state_dict(torch.load(MODEL_PATH, map_location=device))  # map_location กันพังตอนโหลดโมเดลที่เทรนจาก GPU มารันบน CPU
+# โหลดขึ้น CPU ก่อนเสมอ แล้วค่อยย้ายไป device ทีหลัง (model.to(device) ด้านล่าง): น้ำหนักที่เทรนบน CUDA (เช่น Colab) โหลดตรงเข้า DirectML ไม่ได้
+model.load_state_dict(torch.load(MODEL_PATH, map_location='cpu'))
 model.to(device)
 model.eval()
 
 
 def preprocess(image_path):
     img = imread(image_path, as_gray=True)
+    if img.dtype == bool:
+        # ภาพ 1-bit (PIL mode '1') imread คืน bool -> skimage resize ใช้ nearest-neighbor (ขอบเป็นบล็อก ต่างจากตอนเทรนที่เป็น bilinear)
+        # แปลงเป็น uint8 0/255 ก่อน จะได้ resize แบบเดียวกับภาพ 8-bit ปกติ (ทดสอบแล้ว: mode '1' 75.4% -> 91.8% ที่ Round 5)
+        img = img.astype('uint8') * 255
     # skimage as_gray=True: ถ้าภาพต้นทางเป็น RGB จะแปลงผ่าน rgb2gray -> ได้ float ช่วง 0-1 อยู่แล้ว
     # แต่ถ้าภาพต้นทางเป็น grayscale เดี่ยวอยู่แล้ว (เหมือนชุดเทรน) จะคืน uint8 ช่วง 0-255 แบบเดิม
     # เช็ค max ก่อนหาร กันหาร 255 ซ้ำสอง (ถ้าหารซ้ำ ค่าจะพังเหลือใกล้ 0 ทุกพิกเซล ทำนายมั่วหมด)
