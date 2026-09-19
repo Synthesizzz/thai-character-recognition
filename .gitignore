@@ -6,6 +6,9 @@ datasets for testing/
 # Trained model weights (large binaries — retrain via TrainingCNN.py / the Colab notebook to regenerate)
 *.pt
 *.pth
+# ...แต่ น้ำหนักของแต่ละ Round เก็บลง repo ตั้งใจ (โจทย์ให้ส่งไฟล์ Weight)
+!/Round */model.pt
+!/Round */runs/*/model.pt
 
 # Python
 __pycache__/
@@ -34,7 +37,4 @@ Thumbs.db
 # Local-run script variants (VSCode/terminal, not needed to pull into Colab —
 # the notebook above is self-contained: writes its own Net.py via %%writefile)
 /Net.py
-/Submit/
-/Submit (Round 1 - old)/
-/Submit (Round 3 - IMG224 - WIP)/
 /Test/
