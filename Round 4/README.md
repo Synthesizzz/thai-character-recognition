@@ -23,7 +23,7 @@
 เครื่องมือที่เพิ่ม:
 - `run_experiments.py` — เทรน → วัด synthetic → อัปเดตตาราง ต่อเนื่องหลายแบบ (ข้ามแบบที่เทรนจบแล้ว)
 - `evaluate_synthetic.py` — วัด synthetic ของโมเดลใด ๆ จากโฟลเดอร์ของมันเอง (ไม่ต้องก็อป `model.pt`)
-- `compare.py` — รวมผลทุกรอบเป็น `../Experiment Comparison/comparison.md`, `comparison.csv`, `comparison_history.csv`
+- `../Experiment Comparison/compare.py` (ย้ายมาไว้ที่โฟลเดอร์เปรียบเทียบ) — รวมผลทุกรอบเป็น `../Experiment Comparison/comparison.md`, `comparison.csv`, `comparison_history.csv`
 
 ## การทดลองและผลลัพธ์
 
@@ -54,7 +54,7 @@
 | `Net.py` | โมเดล (`use_maxpool` ตั้งได้) |
 | `TrainingCNN.py` | โค้ด train (ตัวเลือกผ่าน env: `IMG_SIZE`, `NO_MAXPOOL`, `SEED`, `RUN_NAME`, `OPTIMIZER`, `EPOCHS`, `NUM_WORKERS`) |
 | `TestingCNN.py` | inference (`--run runs/<ชื่อ>`) |
-| `run_experiments.py`, `evaluate_synthetic.py`, `compare.py` | เครื่องมือรันการทดลอง วัดผล และเปรียบเทียบ |
+| `run_experiments.py`, `evaluate_synthetic.py` (ส่วน `compare.py` ย้ายไป `../Experiment Comparison/`) | เครื่องมือรันการทดลอง วัดผล และเปรียบเทียบ |
 | `runs/<ชื่อ>/` | ผลของแต่ละการทดลอง (โมเดล, สถิติ, metrics, synthetic) |
 | `experiments_log.txt`, `experiments_log2.txt` | log การเทรนของ `run_experiments.py` (ชุดแรก 4 แบบ / ชุดทำซ้ำ 2 รอบ) |
 
@@ -73,5 +73,5 @@ D:\dml-venv-thai\Scripts\python.exe run_experiments.py img96 img128
 D:\dml-venv-thai\Scripts\python.exe TestingCNN.py "..\datasets for testing\synthetic_test_set" --run runs/img96_nomp
 
 # รวมตารางเปรียบเทียบ
-D:\dml-venv-thai\Scripts\python.exe compare.py
+D:\dml-venv-thai\Scripts\python.exe "..\Experiment Comparison\compare.py"
 ```

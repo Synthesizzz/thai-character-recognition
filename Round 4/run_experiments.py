@@ -52,7 +52,7 @@ def main():
                 print(f"== {name}: เทรนล้มเหลว ข้ามไปตัวถัดไป", flush=True)
                 continue
         run(["evaluate_synthetic.py", os.path.join("runs", name)])
-        run(["compare.py"])
+        run([os.path.join(SCRIPT_DIR, "..", "Experiment Comparison", "compare.py")])
     print("== ทั้งหมดเสร็จ", time.strftime("%H:%M:%S"), flush=True)
 
 

@@ -1,6 +1,6 @@
 """รวมทุกการทดลอง (Round 1–4) เป็นตารางเปรียบเทียบเดียว -> ../Experiment Comparison/
 
-    python compare.py
+    python compare.py        # รันจากที่ไหนก็ได้ (ใช้แค่ Python มาตรฐาน ไม่ต้องใช้ torch)
 
 ผลที่ได้
 - comparison.csv          1 แถว = 1 การทดลอง: คำอธิบายรอบ, ค่าที่ตั้งทุกอย่าง (config), ผลลัพธ์ (train/val/synthetic), path
@@ -23,10 +23,10 @@ import re
 import statistics
 import sys
 
+# ไฟล์นี้อยู่ใน Experiment Comparison/ (ที่เดียวกับผลที่สร้าง); โฟลเดอร์ Round 1-5 อยู่ระดับเดียวกับโฟลเดอร์นี้
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_DIR = os.path.normpath(os.path.join(SCRIPT_DIR, ".."))
-OUT_DIR = os.path.join(PROJECT_DIR, "Experiment Comparison")
-RUN_FOLDER = os.path.basename(SCRIPT_DIR)
+OUT_DIR = SCRIPT_DIR
 
 EPOCH_RE = re.compile(
     r"Epoch (\d+)/(\d+) - train_loss: ([\d.]+) - train_acc: ([\d.]+)% - val_loss: ([\d.]+) - val_acc: ([\d.]+)%"
@@ -108,8 +108,25 @@ ROUND_INFO = {
         "augmentation_timing": "สุ่มใหม่ทุกครั้งที่ดึงภาพ (หลัง resize)", "data_loading": "lazy Dataset + cache ภาพต้นฉบับใน RAM",
         "num_workers": 4, "train_val_samples": "50,653 / 12,664", "training_seed": None,  # ต่อรัน
     },
+    "Round 5": {
+        "round_summary": "เปลี่ยนเฉพาะ Data Augmentation: สุ่มแปลงภาพเทรน *ทุกภาพ* ระหว่างเทรน (หมุน/ย่อขยาย/เลื่อน, ปรับความหนาเส้น, ลบส่วนของภาพ) "
+                         "เฉพาะชุด train ใช้ข้อมูลของอาจารย์เท่านั้น เทรนที่ 96x96 ไม่มี maxpool บน Colab (ผลเทียบกับ img96_nomp ของ Round 4)",
+        "changes_vs_previous": "- Augmentation ใหม่กับทุกภาพของชุด train (เดิมเฉพาะภาพเติม ~1%): หมุน ±10°/ย่อขยาย 0.9–1.1/เลื่อน ±6% (50%), "
+                               "ปรับความหนาเส้น 1–2% ของขนาดภาพ (30%), ลบส่วนของภาพ 1–2 ก้อน ก้อนละ 10–35% (40%)\n"
+                               "- ชุด val ไม่ถูก augment; โมเดล/optimizer/loss/scheduler/early stopping คงเดิม\n"
+                               "- เพิ่ม env AUGMENT, AUG_PREVIEW; TestingCNN แก้โหลดน้ำหนักจาก CUDA (map_location='cpu') และภาพ 1-bit (bool->uint8)",
+        "device": "Google Colab GPU (CUDA)", "model": COMMON_MODEL + "; ไม่มี maxpool (96x96); fc = Dropout(0.3)+Linear",
+        "dropout": 0.3, "normalization": "หาร 255 แล้ว standardize (x-mean)/std", "mean_std": None,  # อ่านจาก norm_stats.json ต่อรัน
+        "optimizer": "Adam", "lr": 1e-4, "weight_decay": 1e-4, "lr_scheduler": "ReduceLROnPlateau(mode=min, factor=0.5, patience=3)",
+        "loss": "CrossEntropyLoss + class weight", "batch_size": 64, "epoch_cap": 60,
+        "early_stopping": "patience 10 (ดู val_acc)", "checkpoint": "best val_acc",
+        "split": "80/20 stratify", "split_seed": 42,
+        "augmentation": "ภาพเติม (ครบ 50/คลาส): หมุน ±15° + noise; ทุกภาพ train: หมุน ±10°/ย่อขยาย/เลื่อน 50%, ปรับความหนาเส้น 30%, ลบส่วนของภาพ 40%",
+        "augmentation_timing": "สุ่มใหม่ทุกครั้งที่ดึงภาพ (เฉพาะชุด train)", "data_loading": "lazy Dataset + cache ภาพต้นฉบับใน RAM",
+        "num_workers": 2, "train_val_samples": "50,653 / 12,664", "training_seed": None,  # ต่อรัน
+    },
 }
-ROUND_ORDER = ["Round 1", "Round 2", "Round 3", "Round 4"]
+ROUND_ORDER = ["Round 1", "Round 2", "Round 3", "Round 4", "Round 5"]
 
 
 def load(path):
@@ -205,7 +222,7 @@ def build_rows():
             load(os.path.join(OUT_DIR, "results", "round3_img224_synthetic.json")),
             note="ประวัติทุก epoch จาก terminal log; เวลา/epoch จากแถบ tqdm")
 
-    for d in sorted(glob.glob(os.path.join(SCRIPT_DIR, "runs", "*"))):
+    for d in sorted(glob.glob(os.path.join(PROJECT_DIR, "Round 4", "runs", "*"))):
         m = load(os.path.join(d, "metrics.json"))
         ns = load(os.path.join(d, "norm_stats.json")) or {}
         if not m:
@@ -218,13 +235,35 @@ def build_rows():
         histories[m["run"]] = {e + 1: pick(e) for e in range(len(m["val_acc"]))}
         seed = m.get("seed")
         ms = f"{ns['mean']:.4f} / {ns['std']:.4f} (subset 3,000 ภาพ)" if "mean" in ns else "-"
-        add("Round 4", m["run"], f"{RUN_FOLDER}/runs/{m['run']}", m["img_size"], "on" if m["use_maxpool"] else "off",
+        add("Round 4", m["run"], f"Round 4/runs/{m['run']}", m["img_size"], "on" if m["use_maxpool"] else "off",
             seed if seed is not None else "ไม่ตั้ง",
             {"epochs": m["epochs_run"], "best_epoch": m["best_epoch"], "best": pick(m["best_epoch"] - 1),
              "last": pick(len(m["val_acc"]) - 1)},
             m.get("sec_per_epoch"), load(os.path.join(d, "synthetic.json")), mean_std=ms,
             training_seed=f"seed={seed}" if seed is not None else "ไม่ตั้ง",
             note="" if m["finished"] else "ยังเทรนไม่จบ / ถูกหยุดกลางคัน")
+
+    # ---- Round 5: ../Round 5/runs/* (ต้องมี metrics.json; โฟลเดอร์ที่มีแค่ภาพตัวอย่าง/norm_stats ข้ามไป)
+    for d in sorted(glob.glob(os.path.join(PROJECT_DIR, "Round 5", "runs", "*"))):
+        m = load(os.path.join(d, "metrics.json"))
+        ns = load(os.path.join(d, "norm_stats.json")) or {}
+        if not m:
+            continue
+
+        def pick5(k, m=m):
+            return {"train_loss": m["train_loss"][k], "train_acc": m["train_acc"][k],
+                    "val_loss": m["val_loss"][k], "val_acc": m["val_acc"][k]}
+
+        histories[m["run"]] = {e + 1: pick5(e) for e in range(len(m["val_acc"]))}
+        seed = m.get("seed")
+        ms = f"{ns['mean']:.4f} / {ns['std']:.4f} (subset 3,000 ภาพ)" if "mean" in ns else "-"
+        add("Round 5", m["run"], f"Round 5/runs/{m['run']}", m["img_size"], "on" if m["use_maxpool"] else "off",
+            seed if seed is not None else "ไม่ตั้ง",
+            {"epochs": m["epochs_run"], "best_epoch": m["best_epoch"], "best": pick5(m["best_epoch"] - 1),
+             "last": pick5(len(m["val_acc"]) - 1)},
+            m.get("sec_per_epoch"), load(os.path.join(d, "synthetic.json")), mean_std=ms,
+            training_seed=f"seed={seed}" if seed is not None else "ไม่ตั้ง",
+            note=("" if m["finished"] else "ยังเทรนไม่จบ / ถูกหยุดกลางคัน") + " [Colab GPU; augmentation ใหม่]")
     return rows, histories
 
 
@@ -269,7 +308,7 @@ def main():
     # ---------- Markdown ----------
     pct = lambda x: "-" if x is None else f"{x * 100:.2f}%"
     f4 = lambda x: "-" if x is None else f"{x:.4f}"
-    L = ["# เปรียบเทียบผลการทดลองทั้งหมด Round 1–4 (สร้างโดย `compare.py` — อย่าแก้มือ)", "",
+    L = ["# เปรียบเทียบผลการทดลองทั้งหมด Round 1–5 (สร้างโดย `compare.py` — อย่าแก้มือ)", "",
          "ไฟล์ข้อมูลเต็ม: `comparison.csv` (ทุกค่า config + ผลลัพธ์ + path เต็ม) · `comparison_history.csv` (train/val ทุก epoch)", "",
          "## แต่ละ Round ทำอะไรไปบ้าง", ""]
     for rnd in ROUND_ORDER:
@@ -294,7 +333,7 @@ def main():
         l = r["last"]
         L.append(f"| {r['run']} | {r['epochs']} | {f4(l['train_loss'])} | {pct(l['train_acc'])} | {f4(l['val_loss'])} | {pct(l['val_acc'])} |")
 
-    rep = [r for r in rows if r["run"].startswith("img96_nomp")]
+    rep = [r for r in rows if re.fullmatch(r"img96_nomp(_s\d+)?", r["run"])]
     if len(rep) >= 2:
         va = [r["best"]["val_acc"] * 100 for r in rep]
         sy = [r["syn"]["acc"] * 100 for r in rep if r["syn"]["acc"] is not None]
@@ -305,7 +344,7 @@ def main():
               f"| synthetic | {statistics.mean(sy):.2f}% | {sd(sy):.2f} | {min(sy):.2f}% | {max(sy):.2f}% |"]
 
     L += ["", "## ค่า config ที่ใช้ (ต่อ Round)", "",
-          "| ค่า | Round 1 | Round 2 | Round 3 | Round 4 |", "|---|---|---|---|---|"]
+          "| ค่า | Round 1 | Round 2 | Round 3 | Round 4 | Round 5 |", "|---|---|---|---|---|---|"]
     keys = [("device", "อุปกรณ์เทรน"), ("model", "โมเดล"), ("dropout", "dropout"), ("normalization", "normalize"),
             ("mean_std", "mean / std"), ("optimizer", "optimizer"), ("lr", "learning rate"), ("weight_decay", "weight decay"),
             ("lr_scheduler", "LR scheduler"), ("loss", "loss"), ("batch_size", "batch size"), ("epoch_cap", "epoch สูงสุด"),
@@ -316,7 +355,7 @@ def main():
     for k, label in keys:
         vals = [ROUND_INFO[r][k] if ROUND_INFO[r][k] is not None else "ต่อรัน (ดู comparison.csv)" for r in ROUND_ORDER]
         L.append(f"| {label} | " + " | ".join(str(v).replace("|", "/").replace("\n", " ") for v in vals) + " |")
-    L.append("| ขนาดภาพ / maxpool | 32 / on | 64 / off | 224 / on | 64, 96, 128 / ตามรัน (ดู comparison.csv) |")
+    L.append("| ขนาดภาพ / maxpool | 32 / on | 64 / off | 224 / on | 64, 96, 128 / ตามรัน (ดู comparison.csv) | 96 / off |")
 
     L += ["", "## หมายเหตุ", ""] + [f"- **{r['run']}**: {r['note']}" for r in rows if r["note"]]
     with open(os.path.join(OUT_DIR, "comparison.md"), "w", encoding="utf-8") as f:
