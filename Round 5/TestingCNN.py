@@ -101,6 +101,7 @@ def find_images(folder_path):
 def predict_folder(folder_path, output_csv="out.csv"):
     results = []
     n_labeled, n_correct, n_failed = 0, 0, 0
+    per_class = {}  # คลาสจริง -> [ทายถูก, ทั้งหมด]
     for path in find_images(folder_path):
         rel = os.path.relpath(path, folder_path)
         try:
@@ -117,6 +118,9 @@ def predict_folder(folder_path, output_csv="out.csv"):
         if true_class in CLASSES:
             n_labeled += 1
             n_correct += (pred_class == true_class)
+            pc = per_class.setdefault(true_class, [0, 0])
+            pc[0] += (pred_class == true_class)
+            pc[1] += 1
 
     with open(output_csv, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
@@ -127,6 +131,16 @@ def predict_folder(folder_path, output_csv="out.csv"):
         print(f"ข้ามไป {n_failed} ไฟล์ที่อ่านไม่ได้")
     if n_labeled:
         print(f"Accuracy (จากชื่อโฟลเดอร์ย่อยเป็นเฉลย): {n_correct}/{n_labeled} = {n_correct / n_labeled * 100:.2f}%")
+        # สรุปต่อคลาส: (ทายถูก/ทั้งหมด) เรียงตามรหัสคลาส แล้วแยกรายการคลาสที่ทายผิด
+        print(f"\nผลต่อคลาส (ทายถูก/ทั้งหมด) — {len(per_class)} คลาส:")
+        items = [f"{c} ({v[0]}/{v[1]})" for c, v in sorted(per_class.items(), key=lambda kv: int(kv[0]))]
+        for k in range(0, len(items), 6):
+            print("  " + "   ".join(items[k:k + 6]))
+        wrong = sorted(((c, v) for c, v in per_class.items() if v[0] < v[1]),
+                       key=lambda kv: (kv[1][0] / kv[1][1], int(kv[0])))
+        print(f"\nคลาสที่ทายผิดอย่างน้อย 1 ภาพ: {len(wrong)}/{len(per_class)} คลาส (เรียงจากผิดมากไปน้อย)")
+        if wrong:
+            print("  " + "   ".join(f"{c} ({v[0]}/{v[1]})" for c, v in wrong))
 
 
 if __name__ == "__main__":

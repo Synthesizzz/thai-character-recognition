@@ -93,7 +93,7 @@ Round 5 ไม่แก้ส่วนนี้เพื่อให้เที
 | ไฟล์ | หมายเหตุ |
 |---|---|
 | `Net.py`, `evaluate_synthetic.py` | เหมือน Round 4 ทุกไบต์ |
-| `TestingCNN.py` | เหมือน Round 4 ยกเว้น 1 บรรทัด: โหลดน้ำหนักด้วย `map_location='cpu'` ก่อนแล้วค่อยย้ายไป device (แก้ให้โหลดน้ำหนักที่เทรนบน Colab/CUDA เข้า DirectML ได้ — ของ Round 4 โหลดไม่ได้) |
+| `TestingCNN.py` | เหมือน Round 4 ยกเว้น: (1) โหลดน้ำหนักด้วย `map_location='cpu'` ก่อนแล้วค่อยย้ายไป device (โหลดน้ำหนักที่เทรนบน Colab/CUDA เข้า DirectML ได้ — ของ Round 4 โหลดไม่ได้) (2) แปลงภาพ 1-bit (bool) เป็น uint8 ก่อน resize (3) ท้ายผลพิมพ์ **สรุปต่อคลาส (ทายถูก/ทั้งหมด)** และรายการคลาสที่ทายผิดเรียงจากผิดมากไปน้อย เมื่อโฟลเดอร์ทดสอบแยกตามชื่อคลาส · ใช้กับผลเทรนใน `runs/` ต้องใส่ `--run runs/<ชื่อรัน>` |
 | `TrainingCNN.py` | Round 4 + `augment_train()`, `AUGMENT`, `AUG_PREVIEW`, `train_aug` ใน `ThaiCharDataset` (ชุด val ไม่ใช้), เก็บ `augment` ใน `metrics.json` |
 | `runs/img96_nomp_aug/` | `aug_preview.png` และ `norm_stats.json` จากการรัน preview (ไม่มี `model.pt`) |
 | `runs/img96_nomp_aug_s1/` | ผลเทรนจาก Colab (seed 1): `model.pt` (45 MB), `metrics.json`, `norm_stats.json` + `synthetic.json` |
